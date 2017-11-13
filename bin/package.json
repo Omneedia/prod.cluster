@@ -1,0 +1,32 @@
+{
+    "name": "bin.omneedia.cluster",
+    "version": "1.0.0",
+    "description": "Omneedia Cluster",
+    "main": "cluster.js",
+    "dependencies": {
+        "body-parser": "*",
+        "express": "*",
+        "morgan": "*",
+        "shelljs": "*",
+        "cookie-parser": "*",
+        "multer": "*",
+        "request": "*",
+        "socket.io": "*",
+        "socket.io-adapter-mongo": "*",
+        "mysql": "*",
+        "adm-zip": "*",
+        "socket.io-client": "*",
+        "pidusage": "*",
+        "shortid": "*",
+        "github": "*",
+        "gitlab": "*",
+        "connect-mongo": "*",
+        "express-session": "*"
+    },
+    "devDependencies": {},
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "author": "",
+    "license": "ISC"
+}
