@@ -9,7 +9,7 @@ module.exports = function(TRUSTED_HOSTS, NET, cluster, Config) {
 
     function init() {
         console.log('');
-        console.log('Omneedia Cluster started at ' + NET.getIPAddress() + ":" + Config.port + " (" + numCPUs + " threads)");
+        console.log('Omneedia Cluster started at ' + NET.getIPAddress() + ":" + Config['cluster.port'] + " (" + numCPUs + " threads)");
 
         console.log(' ');
         require('./secure')(Config, TRUSTED_HOSTS, function() {
@@ -17,8 +17,9 @@ module.exports = function(TRUSTED_HOSTS, NET, cluster, Config) {
             require('./engines')(Config, function() {
                 process.on('exit', function() {
                     var shelljs = require('shelljs');
-                    shelljs.exec('fuser -k ' + Config["port.session"] + '/tcp', { silent: true });
-                    shelljs.exec('fuser -k ' + Config["port.db"] + '/tcp', { silent: true });
+                    shelljs.exec('fuser -k ' + Config["session.port"] + '/tcp', { silent: true });
+                    shelljs.exec('fuser -k ' + Config["db.port"] + '/tcp', { silent: true });
+                    shelljs.exec('fuser -k 61208/tcp', { silent: true });
                     shelljs.exec(__dirname + '/../nginx/nginx -s quit', { silent: true });
                     console.log(' ');
                     console.log('* All engines stopped.');
@@ -57,7 +58,7 @@ module.exports = function(TRUSTED_HOSTS, NET, cluster, Config) {
                 var server = net.createServer({ pauseOnConnect: true }, function(connection) {
                     var worker = workers[worker_index(connection.remoteAddress, numCPUs)];
                     worker.send('sticky-session:connection', connection);
-                }).listen(Config.port);
+                }).listen(Config['cluster.port']);
 
                 console.log('- Cluster online.');
 

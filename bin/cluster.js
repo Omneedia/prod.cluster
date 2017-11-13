@@ -7,7 +7,6 @@ var cluster = require('cluster');
 var os = require('os');
 var fs = require('fs');
 
-
 var networkInterfaces = require('os').networkInterfaces();
 
 var IP = [];
@@ -23,20 +22,22 @@ function ERROR(message) {
 }
 
 var CONFIG = __dirname + '/../config/';
-CLUSTER_DEFAULT = {
-    "port": "9191",
-    "port.session": "24333",
-    "port.db": "3334",
-    "threads": "*",
-    "label": "cluster.yourdomain.com",
-    "url": "https://cluster.yourdomain.com"
-};
 
 require('./lib/utils/dates.js')();
 require('./lib/utils/db')();
 require('./lib/utils/fs')();
 require('./lib/utils/crypto')();
 var NET = require('./lib/utils/net');
+
+CLUSTER_DEFAULT = {
+    "cluster.ip": NET.getIPAddress(),
+    "cluster.port": "9191",
+    "session.port": "24333",
+    "db.port": "3334",
+    "threads": "*",
+    "label": "cluster.yourdomain.com",
+    "url": "https://cluster.yourdomain.com"
+};
 
 var startMaster = require("./lib/Master");
 var startThreads = require('./lib/Threads');
@@ -50,6 +51,8 @@ function loadConfig(type, _default, cb) {
         try {
             cb(JSON.parse(b.toString('utf-8')));
         } catch (e) {
+            console.log('------');
+            console.log(e);
             ERROR('[INIT] ' + type + ' configuration error');
         }
     });
