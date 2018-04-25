@@ -1,55 +1,44 @@
-module.exports = function(TRUSTED_HOSTS, NET, cluster, Config) {
+module.exports = function (TRUSTED_HOSTS, NET, cluster, Config) {
 
     var express = require('express');
     var app = express();
     var server = app.listen(0, Config['cluster.ip']);
 
-    var io = require('socket.io')(server);
+    require('./db')(Config);
+    app.enable('trust proxy');
+    app.use(require('morgan')("dev"));
+    app.use(require('cookie-parser')());
+
+    app.use(function (req, res, next) {
+        res.header("Access-Control-Allow-Origin", "*");
+        res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+        next();
+    });
+    app.use(require('body-parser').urlencoded({
+        extended: true,
+        limit: "5000mb"
+    }));
+    app.use(require('body-parser').json({
+        limit: "5000mb"
+    }));
+
+    var io = require('socket.io')(server, {
+        pingTimeout: 60000
+    });
 
     var date = new Date();
     console.log("   * thread started @ " + date + " #" + process.pid);
 
     // IO Adapter
     var mongo = require('socket.io-adapter-mongo');
-    io.adapter(mongo('mongodb://' + Config['cluster.ip'] + ':' + Config["session.port"] + '/io'));
+    io.adapter(mongo('mongodb://127.0.0.1:' + Config["session.port"] + '/io'));
     var IO = require('./io');
+    global.config = Config;
     io.on('connection', IO);
 
-    app.get('/', function(req, res) {
-        res.writeHead(200, { 'Content-Type': 'application/json', 'charset': 'utf-8' });
-        var fs = require('fs');
-        fs.readFile(__dirname + '/../package.json', function(e, r) {
-            r = JSON.parse(r.toString('utf-8'));
-            res.end(JSON.stringify({
-                omneedia: {
-                    cluster: {
-                        version: r.version
-                    }
-                }
-            }, null, 4));
-        });
-        return;
-    });
+    require('./api')(express, app, Config);
 
-    app.get('/stats', function(req, res) {
-        res.writeHead(200, { 'Content-Type': 'text/html', 'charset': 'utf-8' });
-        var fs = require('fs');
-        fs.readFile(__dirname + '/tpl/stats.tpl', function(e, r) {
-            res.end(r.toString('utf-8'));
-        });
-    });
-
-    app.get('/stats/(*)', function(req, res) {
-        res.writeHead(200, { 'Content-Type': 'application/json', 'charset': 'utf-8' });
-        var request = require('request');
-        request('http://127.0.0.1:61208/api/2/all', function(e, r, b) {
-            var b = b.toString('utf-8');
-            if (req.params[0] == "json") b = JSON.stringify(JSON.parse(b), null, 4);
-            return res.end(b);
-        });
-    });
-
-    process.on('message', function(message, connection) {
+    process.on('message', function (message, connection) {
         if (message !== 'sticky-session:connection') {
             return;
         }

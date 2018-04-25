@@ -1,6 +1,6 @@
-module.exports = function() {
+module.exports = function () {
 
-    global.mkdir = function(path, callback) {
+    global.mkdir = function (path, callback) {
         var fs = require('fs');
         var sep = require('path').sep;
         var p = path.split(sep);
@@ -8,7 +8,7 @@ module.exports = function() {
         function domkdir(dir, i, cb, path) {
             if (!dir[i]) return cb();
             if (!path) path = "";
-            fs.mkdir(path + sep + dir[i], function() {
+            fs.mkdir(path + sep + dir[i], function () {
                 path = path + sep + dir[i];
                 domkdir(dir, i + 1, cb, path);
             });
@@ -17,16 +17,24 @@ module.exports = function() {
         domkdir(p, 0, callback);
     };
 
-    global.makedirs = function(dirs, cb) {
+    global.rmdir = function (dir, cb) {
+        var exec = require('child_process').exec,
+            child;
+        child = exec('rm -rf "' + dir + '"', function (err, out) {
+            cb();
+        });
+    };
+
+    global.makedirs = function (dirs, cb) {
         var fs = require('fs');
 
         function make_dir(list, i, cb) {
             if (!list[i]) return cb();
-            fs.mkdir(list[i], function(e) {
+            fs.mkdir(list[i], function (e) {
                 make_dir(list, i + 1, cb);
             });
         };
-        if (!cb) var cb = function() {};
+        if (!cb) var cb = function () {};
         make_dir(dirs, 0, cb);
     }
 

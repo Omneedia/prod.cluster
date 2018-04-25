@@ -15,6 +15,11 @@ module.exports = function(TRUSTED_HOSTS, NET, cluster, Config) {
         require('./secure')(Config, TRUSTED_HOSTS, function() {
             console.log('- Starting engines');
             require('./engines')(Config, function() {
+                console.log('- Adding peers to hosts');
+                var hostile = require('hostile');
+                hostile.get(false, function(err, lines) {
+                    console.log(lines);
+                });
                 process.on('exit', function() {
                     var shelljs = require('shelljs');
                     shelljs.exec('fuser -k ' + Config["session.port"] + '/tcp', { silent: true });
