@@ -69,19 +69,30 @@ fs.writeFile(__dirname + '/../config/engines/nginx/conf.d/omneedia.conf', line, 
         });
     });
     if (cluster.isMaster) {
-        var watch = require('node-watch');
-        watch(__dirname + '/../config/trustedhosts.json', function (evt, filename) {
-            console.log(evt);
-            console.log('! updating securing rules...');
-            setTimeout(function () {
-                loadConfig('trustedhosts', [], function (TRUSTED_HOSTS) {
-                    global.TRUSTED_HOSTS = TRUSTED_HOSTS;
-                    console.log(global.TRUSTED_HOSTS);
-                    require(__dirname + '/lib/secure')(global.config, TRUSTED_HOSTS, function () {
-                        console.log('updated.');
+        var next = function () {
+            watch(__dirname + '/../config/trustedhosts.json', function (evt, filename) {
+                console.log(evt);
+                console.log('! updating securing rules...');
+                setTimeout(function () {
+                    loadConfig('trustedhosts', [], function (TRUSTED_HOSTS) {
+                        global.TRUSTED_HOSTS = TRUSTED_HOSTS;
+                        console.log(global.TRUSTED_HOSTS);
+                        require(__dirname + '/lib/secure')(global.config, TRUSTED_HOSTS, function () {
+                            console.log('updated.');
+                        });
                     });
-                });
-            }, 5000);
+                }, 5000);
+            });
+        }
+        var watch = require('node-watch');
+        fs.readFile(__dirname + '/../config/trustedhosts.json', function (e, f) {
+            if (e) {
+                var rules = [
+                    "127.0.0.1",
+                    NET.getIPAddress()
+                ];
+                fs.writeFile(__dirname + '/../config/trustedhosts.json', JSON.stringify(rules, null, 4), next);
+            } else next();
         });
     }
 });
