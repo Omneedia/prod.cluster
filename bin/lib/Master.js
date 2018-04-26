@@ -1,4 +1,4 @@
-module.exports = function(TRUSTED_HOSTS, NET, cluster, Config) {
+module.exports = function (TRUSTED_HOSTS, NET, cluster, Config) {
     var fs = require('fs');
     var numCPUs = require('os').cpus().length;
     var net = require('net');
@@ -12,20 +12,28 @@ module.exports = function(TRUSTED_HOSTS, NET, cluster, Config) {
         console.log('Omneedia Cluster started at ' + NET.getIPAddress() + ":" + Config['cluster.port'] + " (" + numCPUs + " threads)");
 
         console.log(' ');
-        require('./secure')(Config, TRUSTED_HOSTS, function() {
+        require('./secure')(Config, TRUSTED_HOSTS, function () {
             console.log('- Starting engines');
-            require('./engines')(Config, function() {
+            require('./engines')(Config, function () {
                 console.log('- Adding peers to hosts');
                 var hostile = require('hostile');
-                hostile.get(false, function(err, lines) {
+                hostile.get(false, function (err, lines) {
                     console.log(lines);
                 });
-                process.on('exit', function() {
+                process.on('exit', function () {
                     var shelljs = require('shelljs');
-                    shelljs.exec('fuser -k ' + Config["session.port"] + '/tcp', { silent: true });
-                    shelljs.exec('fuser -k ' + Config["db.port"] + '/tcp', { silent: true });
-                    shelljs.exec('fuser -k 61208/tcp', { silent: true });
-                    shelljs.exec(__dirname + '/../nginx/nginx -s quit', { silent: true });
+                    shelljs.exec('fuser -k ' + Config["session.port"] + '/tcp', {
+                        silent: true
+                    });
+                    shelljs.exec('fuser -k ' + Config["db.port"] + '/tcp', {
+                        silent: true
+                    });
+                    shelljs.exec('fuser -k 61208/tcp', {
+                        silent: true
+                    });
+                    shelljs.exec(__dirname + '/../nginx/nginx -s quit', {
+                        silent: true
+                    });
                     console.log(' ');
                     console.log('* All engines stopped.');
                     console.log('* Cluster stopped.');
@@ -35,7 +43,7 @@ module.exports = function(TRUSTED_HOSTS, NET, cluster, Config) {
                 process.on('SIGTERM', process.exit); // catch kill             
                 var workers = [];
 
-                var worker_index = function(ip, len) {
+                var worker_index = function (ip, len) {
                     var s = '';
                     for (var i = 0, _len = ip.length; i < _len; i++) {
                         if (ip[i] !== '.') {
@@ -47,9 +55,9 @@ module.exports = function(TRUSTED_HOSTS, NET, cluster, Config) {
                 };
 
                 // Helper function for spawning worker at index 'i'.
-                var spawn = function(i) {
+                var spawn = function (i) {
                     workers[i] = cluster.fork();
-                    workers[i].on('exit', function(worker, code, signal) {
+                    workers[i].on('exit', function (worker, code, signal) {
                         console.log('! respawning worker', i);
                         spawn(i);
                     });
@@ -60,7 +68,9 @@ module.exports = function(TRUSTED_HOSTS, NET, cluster, Config) {
                     spawn(i);
                 };
 
-                var server = net.createServer({ pauseOnConnect: true }, function(connection) {
+                var server = net.createServer({
+                    pauseOnConnect: true
+                }, function (connection) {
                     var worker = workers[worker_index(connection.remoteAddress, numCPUs)];
                     worker.send('sticky-session:connection', connection);
                 }).listen(Config['cluster.port']);
@@ -73,9 +83,6 @@ module.exports = function(TRUSTED_HOSTS, NET, cluster, Config) {
 
     };
 
-    fs.stat(__dirname + "/cluster.lock", function(e, s) {
-        if (s) fs.unlink(__dirname + "/cluster.lock", init);
-        else init();
-    });
+    init();
 
 };

@@ -58,41 +58,36 @@ function loadConfig(type, _default, cb) {
     });
 };
 
+var watch = require('node-watch');
+
+var rules = [
+    "127.0.0.1",
+    NET.getIPAddress()
+];
+
 var line = "server_names_hash_bucket_size  512;\nserver_names_hash_max_size 512;\nclient_max_body_size 2000M;";
+
 fs.writeFile(__dirname + '/../config/engines/nginx/conf.d/omneedia.conf', line, function () {
-    loadConfig('trustedhosts', [], function (TRUSTED_HOSTS) {
+    loadConfig('trustedhosts', rules, function (TRUSTED_HOSTS) {
         global.TRUSTED_HOSTS = TRUSTED_HOSTS;
+        watch(CONFIG + 'trustedhosts.json', function (evt, filename) {
+
+            console.log('! updating securing rules...');
+            //setTimeout(function () {
+            loadConfig('trustedhosts', rules, function (TRUSTED_HOSTS) {
+                global.TRUSTED_HOSTS = TRUSTED_HOSTS;
+                require(__dirname + '/lib/secure')(global.config, TRUSTED_HOSTS, function () {
+                    console.log('updated.');
+                });
+            });
+            //}, 5000);
+
+        });
+
         loadConfig('cluster', CLUSTER_DEFAULT, function (Config) {
             global.config = Config;
             if (cluster.isMaster) startMaster(TRUSTED_HOSTS, NET, cluster, Config);
             else startThreads(TRUSTED_HOSTS, NET, cluster, Config);
         });
     });
-    if (cluster.isMaster) {
-        var next = function () {
-            watch(__dirname + '/../config/trustedhosts.json', function (evt, filename) {
-                console.log(evt);
-                console.log('! updating securing rules...');
-                setTimeout(function () {
-                    loadConfig('trustedhosts', [], function (TRUSTED_HOSTS) {
-                        global.TRUSTED_HOSTS = TRUSTED_HOSTS;
-                        console.log(global.TRUSTED_HOSTS);
-                        require(__dirname + '/lib/secure')(global.config, TRUSTED_HOSTS, function () {
-                            console.log('updated.');
-                        });
-                    });
-                }, 5000);
-            });
-        }
-        var watch = require('node-watch');
-        fs.readFile(__dirname + '/../config/trustedhosts.json', function (e, f) {
-            if (e) {
-                var rules = [
-                    "127.0.0.1",
-                    NET.getIPAddress()
-                ];
-                fs.writeFile(__dirname + '/../config/trustedhosts.json', JSON.stringify(rules, null, 4), next);
-            } else next();
-        });
-    }
 });
